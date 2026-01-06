@@ -44,7 +44,7 @@ To obtain these benefits, the model is trained with three unsupervised objective
 ## Repository Structure
 
 ```
-probable-adventure/
+improbable-adventure/
 ├── mergedna/                    
 │   ├── __init__.py              
 │   ├── backbone.py              # MergeDNAModel, LatentEncoder, LatentDecoder
@@ -75,7 +75,7 @@ probable-adventure/
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/probable-adventure.git
+git clone https://github.com/your-username/improbable-adventure.git
 
 # Install dependencies with uv
 uv sync
@@ -121,4 +121,6 @@ Training tasks:
 - masked training over the encoded embeddings over the dynamic tokens 
 
 # some outcomes I've noticed 
-The reconstruction task is fairly easy as is pointed out in text based, or image datasets as well. Classification as well as other benchmarks used in the paper also are not as challenging to learn, therefore the real value of using this approach for tokenization should come in based off the downstream task of zero-shot generation, or a use-case of genomic sequence embeddings. 
+The reconstruction task is fairly easy, therefore the paper also points to >98% of f1 scores. The latest training run over 10 epochs shows a reasonably high accuracy due to this as well. An additional plot is added in assets - the plot shows a close-up view of all the losses. 
+
+Classification as well as other benchmarks used in the paper also are not as challenging to learn, therefore the real value of using this approach for tokenization should come in based off the downstream task of zero-shot generation, or a use-case of genomic sequence embeddings. 
