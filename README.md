@@ -104,8 +104,8 @@ Stack of transformer blocks with a GlobalTokenSelector for adaptive token select
 Decodes from latent space back to the local token representation.
 
 ## Next Steps, summary of the implementation: 
-1. I've added a minimally complete implementation. More task specific decoders can be added in the backbone.py and local_modules.py files like the promoter classification would need an classification decoder instead of the current version. The other tasks mentioned in the paper, like the genomic, nucleotide transformer, GUE benchmarks are also all not added. 
-2. The dataset originally downloaded for the promoter classification task was repurposed for the unsupervised training objective. Since the class sizes of the promoter and non-promoter sequences were similar - this should not create a huge problem for a toy model. 
+1. I've added a minimally complete implementation that complete the core forward training of the paper, i.e. the merging and masked learning. More task specific decoders can be added in the backbone.py and local_modules.py files like the promoter classification would need an classification decoder instead of the current version. 
+2. The dataset originally downloaded for the promoter classification task was repurposed for the unsupervised training objective. Since the class sizes of the promoter and non-promoter sequences were similar - this ideally should not create a huge problem for a toy model. However the results seem to suggest: (a) it was a fairly simple task, (b) the data had not much variability. 
 3. To scale this from a toy version to larger genomic sequences, the configs needs to be updated, along with more sound architectural decisions like encoder structure. 
 
 quick summary (wrote after reading the paper):
@@ -121,6 +121,6 @@ Training tasks:
 - masked training over the encoded embeddings over the dynamic tokens 
 
 # some outcomes I've noticed 
-The reconstruction task is fairly easy, therefore the paper also points to >98% of f1 scores. The latest training run over 10 epochs shows a reasonably high accuracy due to this as well. An additional plot is added in assets - the plot shows a close-up view of all the losses. 
+The reconstruction task is fairly easy, therefore the paper also points to >98% of f1 scores. The latest training run over 10 epochs shows a reasonably high accuracy due to this as well. An additional plot is added in assets - the plot shows a close-up view of all the losses. All training was done on CPU. 
 
 Classification as well as other benchmarks used in the paper also are not as challenging to learn, therefore the real value of using this approach for tokenization should come in based off the downstream task of zero-shot generation, or a use-case of genomic sequence embeddings. 
