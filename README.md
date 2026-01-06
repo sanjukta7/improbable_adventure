@@ -85,21 +85,6 @@ uv sync
 # run the _01_pretrain file. 
 ```
 
-## Quick Start
-
-### 1. Download the Dataset
-
-```bash
-uv run python scripts/download_data.py
-```
-
-### 2. Run Pre-training
-
-**Using the notebook:**
-```bash
-jupyter notebook notebooks/_02_pretrain.ipynb
-```
-
 Available arguments:
 - `--data_dir`: Path to dataset directory
 - `--checkpoint_dir`: Where to save checkpoints (default: `checkpoints`)

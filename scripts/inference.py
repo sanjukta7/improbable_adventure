@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
+
+#unused scripts, wrote earlier as reference. 
+
 import argparse
 import os
 import sys
 
-# Add parent directory to path for imports
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import torch
@@ -21,16 +24,6 @@ from mergedna.local_modules import LocalEncoder, LocalDecoder
 
 
 def load_model(checkpoint_path: str, device: torch.device) -> MergeDNAModel:
-    """
-    Load a pre-trained MergeDNA model from checkpoint.
-
-    Args:
-        checkpoint_path: Path to the checkpoint file
-        device: Device to load the model on
-
-    Returns:
-        Loaded MergeDNAModel in eval mode
-    """
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
 
     # Get model args from checkpoint or use defaults

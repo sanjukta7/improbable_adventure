@@ -1,22 +1,11 @@
 #!/usr/bin/env python3
-"""
-MergeDNA Pre-training Script.
 
-This script trains the MergeDNA model using three objectives:
-1. Merged Token Reconstruction (MTR)
-2. Latent MTR (Adaptive Selection)
-3. Adaptive Masked Token Modeling (AMTM)
-
-Usage:
-    python scripts/pretrain.py --data_dir data/human_nontata_promoters
-    python scripts/pretrain.py --data_dir data/human_nontata_promoters --epochs 20 --dim 64
-"""
+#unused scripts, wrote earlier as reference. 
 
 import argparse
 import os
 import sys
 
-# Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import torch
@@ -101,7 +90,6 @@ def train_epoch(model, dataloader, optimizer, device, lambda_latent=0.25):
 def main():
     args = parse_args()
 
-    # Setup device
     if torch.cuda.is_available():
         device = torch.device("cuda")
     elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
@@ -110,7 +98,6 @@ def main():
         device = torch.device("cpu")
     print(f"Using device: {device}")
 
-    # Create checkpoint directory
     os.makedirs(args.checkpoint_dir, exist_ok=True)
     checkpoint_path = os.path.join(args.checkpoint_dir, "mergedna_pretrain.pt")
 
@@ -153,7 +140,6 @@ def main():
     print(f"Total parameters: {total_params:,}")
     print(f"Trainable parameters: {trainable_params:,}")
 
-    # Setup optimizer and scheduler
     optimizer = optim.AdamW(
         model.parameters(),
         lr=args.lr,
@@ -165,7 +151,6 @@ def main():
         eta_min=1e-6
     )
 
-    # Training history
     history = {"total": [], "mtr": [], "latent": [], "amtm": [], "lr": []}
     best_loss = float("inf")
 

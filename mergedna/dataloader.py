@@ -15,11 +15,6 @@ class DNADataset(Dataset):
     Converts DNA base characters to token indices.
     """
     def __init__(self, sequences: List[str], max_len: Optional[int] = None):
-        """
-        Args:
-            sequences: List of DNA sequence strings
-            max_len: Optional maximum sequence length (truncates if longer)
-        """
         self.sequences = sequences
         self.max_len = max_len
 
@@ -68,19 +63,7 @@ def create_dataloader(
     max_len: Optional[int] = None,
     num_workers: int = 0
 ) -> DataLoader:
-    """
-    Create a DataLoader for DNA sequences.
 
-    Args:
-        sequences: List of DNA sequence strings
-        batch_size: Batch size
-        shuffle: Whether to shuffle data
-        max_len: Optional max sequence length
-        num_workers: Number of data loading workers
-
-    Returns:
-        DataLoader instance
-    """
     dataset = DNADataset(sequences, max_len=max_len)
     return DataLoader(
         dataset,
@@ -93,12 +76,6 @@ def create_dataloader(
 
 def load_sequences(dir_path: str) -> Dict[str, Dict[str, List[str]]]:
     """
-    Load DNA sequences from a directory structure.
-    Expects: dir_path/[train|test]/[positive|negative]/*.txt
-
-    Args:
-        dir_path: Path to the dataset directory
-
     Returns:
         Nested dict with structure: sequences[split][label] = [seq1, seq2, ...]
     """
@@ -132,20 +109,10 @@ def load_sequences(dir_path: str) -> Dict[str, Dict[str, List[str]]]:
     return sequences
 
 
-# Alias for backward compatibility
 dataloader = load_sequences
 
 
 def merge_sequences(sequences: Dict[str, Dict[str, List[str]]]) -> List[str]:
-    """
-    Flatten nested sequence dictionary into a single list.
-
-    Args:
-        sequences: Nested dict from load_sequences()
-
-    Returns:
-        Flat list of all sequences
-    """
     merged = []
     #for split_data in sequences.values():
     for label_sequences in sequences.values():
@@ -158,12 +125,6 @@ def get_split_sequences(
     split: str = "train"
 ) -> List[str]:
     """
-    Get all sequences from a specific split.
-
-    Args:
-        sequences: Nested dict from load_sequences()
-        split: Which split to get ("train" or "test")
-
     Returns:
         List of sequences from the specified split
     """
@@ -175,10 +136,10 @@ def get_split_sequences(
 
 
 if __name__ == "__main__":
-    # Example usage
+
     sequences = load_sequences("data/human_nontata_promoters/")
     all_seqs = merge_sequences(sequences)
     print(f"Total sequences: {len(all_seqs)}")
     print(f"Train positive: {len(sequences['train']['positive'])}")
     print(f"Train negative: {len(sequences['train']['negative'])}")
-    print(f"Example sequence: {all_seqs[0][:50]}...")
+    print(f"Example sequence: {all_seqs[0])

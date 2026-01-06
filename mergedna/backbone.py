@@ -1,28 +1,9 @@
-"""
-MergeDNA Backbone Architecture.
-
-This module implements the core MergeDNA model as described in the paper:
-"MergeDNA: Context-aware Genome Modeling with Dynamic Tokenization through Token Merging"
-
-Architecture:
-- Local Encoder: Embeds DNA and performs token merging
-- Latent Encoder: Full-attention transformer for global context
-- Latent Decoder: Decodes from latent space
-- Local Decoder: Unmerges tokens back to original length
-
-Pre-training Objectives:
-1. Merged Token Reconstruction (MTR): Reconstruct original DNA from merged tokens
-2. Latent MTR: Adaptive global token selection with compression
-3. Adaptive Masked Token Modeling (AMTM): Focus on high-information regions
-"""
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math
 from typing import Dict, Tuple, Optional
-
-# --- 1. Attention Mechanism ---
 
 
 class FlashAttention(nn.Module):
@@ -86,7 +67,6 @@ class TransformerBlock(nn.Module):
         x = x + self.mlp(self.norm2(x))
         return x
 
-# --- 2. Global Merging for Latent Selection ---
 
 class GlobalTokenSelector(nn.Module):
     """
@@ -118,30 +98,13 @@ class GlobalTokenSelector(nn.Module):
         # Compute similarity metric
         metric = self.scorer(x) # [B, L, D']
         metric = metric / metric.norm(dim=-1, keepdim=True)
-
-        # Bipartite matching (simplified for one-shot reduction)
-        # Partition into A (keepers) and B (candidates for merging)
-        # Note: A robust implementation would loop. Here we assume we can remove 'r' in one pass
-        # or we just select top-k salient tokens based on magnitude/norm for simplicity 
-        # given the complexity of global bipartite matching in one block.
-        
-        # Paper approach: "ToMe-style Attention... merges tokens".
-        # We will use a magnitude-based selection for stability in this example,
-        # or we can assume strictly bipartite. Let's do a strict Top-K selection 
-        # based on "saliency" (norm of metric projection) as a proxy for 'unmergeable'.
-        
         saliency = torch.norm(metric, dim=-1) # [B, L]
         
         # Keep top K tokens
         _, indices = torch.topk(saliency, k_target, dim=1) # [B, K]
         indices = indices.sort(dim=1)[0] # Keep order
         
-        # Gather selected tokens
         x_selected = torch.gather(x, 1, indices.unsqueeze(-1).expand(-1, -1, D))
-        
-        # For the "source matrix", we need to assign the dropped tokens to the nearest kept token.
-        # This is essentially K-Means with fixed centroids (the kept tokens).
-        # We compute distance between all L tokens and the K kept tokens.
         
         with torch.no_grad():
             # [B, L, D] vs [B, K, D] -> [B, L, K] distance
@@ -158,12 +121,10 @@ class GlobalTokenSelector(nn.Module):
                 
         return x_selected, group_ids, group_sizes
 
-# --- 3. Latent Modules ---
-
 class LatentEncoder(nn.Module):
     def __init__(self, dim, depth=12, num_heads=8):
         super().__init__()
-        # Auto-adjust num_heads for small dimensions
+
         num_heads = min(num_heads, max(dim // 8, 1))
         self.blocks = nn.ModuleList([
             TransformerBlock(dim, num_heads) for _ in range(depth)
@@ -176,16 +137,13 @@ class LatentEncoder(nn.Module):
         return x
 
     def forward_selection(self, x, k_target):
-        # Run encoder first to get context
         x_ctx = self.forward(x)
-        # Select K salient tokens
         x_k, group_ids, group_sizes = self.selector(x_ctx, k_target)
         return x_k, group_ids, group_sizes
 
 class LatentDecoder(nn.Module):
     def __init__(self, dim, depth=4, num_heads=8):
         super().__init__()
-        # Auto-adjust num_heads for small dimensions
         num_heads = min(num_heads, max(dim // 8, 1))
         self.blocks = nn.ModuleList([
             TransformerBlock(dim, num_heads) for _ in range(depth)
@@ -199,24 +157,7 @@ class LatentDecoder(nn.Module):
 
 
 
-
-
-
 class MergeDNAModel(nn.Module):
-    """
-    MergeDNA: Context-aware Genome Model with Dynamic Tokenization.
-
-    The model uses a hierarchical autoencoder architecture:
-    1. Local Encoder: Embeds DNA bases and performs token merging
-    2. Latent Encoder: Captures global context with full attention
-    3. Latent Decoder: Decodes from latent space
-    4. Local Decoder: Unmerges tokens back to original length
-
-    Pre-training uses three objectives:
-    - MTR (Merged Token Reconstruction): Full path reconstruction
-    - Latent MTR: Reconstruction from adaptively selected tokens
-    - AMTM (Adaptive Masked Token Modeling): Masked prediction on important tokens
-    """
 
     def __init__(
         self,
@@ -278,9 +219,6 @@ class MergeDNAModel(nn.Module):
 
         B, N, _ = x_onehot.shape
         
-        # ==========================================
-        # 1. Main Path (MTR) - Merged Token Reconstruction
-        # ==========================================
         # Local Encode (get tokens Z_L and source map S)
         z_l, s_local = self.local_encoder(x_onehot) # [B, L, D]
         
@@ -296,9 +234,6 @@ class MergeDNAModel(nn.Module):
         
         loss_mtr = F.cross_entropy(logits_mtr.view(-1, 4), x_indices.view(-1))
 
-        # ==========================================
-        # 2. Latent MTR Path (Adaptive Selection)
-        # ==========================================
         # Select K salient tokens (e.g., K = L/2), minimum 1
         k_target = max(1, z_l.shape[1] // 2)
         
@@ -307,9 +242,7 @@ class MergeDNAModel(nn.Module):
         
         # Get selected tokens and group info
         z_k, group_ids, group_sizes = self.latent_encoder.forward_selection(z_l_detached, k_target)
-        
-        # Unmerge back to L for decoding (Latent Unmerge Step)
-        # We broadcast the K tokens back to L based on group_ids
+
         # z_k: [B, K, D], group_ids: [B, L]
         group_ids_expanded = group_ids.unsqueeze(-1).expand(-1, -1, self.dim) # [B, L, D]
         z_prime_l_restored = torch.gather(z_k, 1, group_ids_expanded) # [B, L, D]
@@ -321,48 +254,31 @@ class MergeDNAModel(nn.Module):
         
         loss_latent_mtr = F.cross_entropy(logits_latent.view(-1, 4), x_indices.view(-1))
 
-        # ==========================================
-        # 3. Adaptive Masked Token Modeling (AMTM)
-        # ==========================================
-        # Calculate masking probabilities: P(j) propto 1 / group_size
         # Map group sizes back to tokens (add epsilon to avoid division by zero)
         gathered_sizes = torch.gather(group_sizes, 1, group_ids)
         token_weights = 1.0 / (gathered_sizes + 1e-6)  # [B, L]
         token_probs = token_weights / (token_weights.sum(dim=1, keepdim=True) + 1e-6)
         
-        # Create Mask M_L based on probs (Mask K tokens, but not more than L)
-        # We sample indices to mask
         L = z_l.shape[1]
         num_to_mask = min(k_target, L)
         mask_indices = torch.multinomial(token_probs, num_to_mask, replacement=False)
         mask_l = torch.zeros(B, L, device=x_input.device)
         mask_l.scatter_(1, mask_indices, 1.0) # 1 = Masked
         
-        # We must mask the INPUT X based on these token masks.
-        # Use Local Decoder logic (Unmerge) to project mask_l up to mask_n
-        # s_local is the ownership map [B, N] pointing to L indices
         mask_n = torch.gather(mask_l, 1, s_local) # [B, N]
         
-        # Apply mask to input (use a specific token, e.g., zero or learned mask token)
-        # Here we just zero out for simplicity, in production use a learnable mask embedding
         x_masked = x_onehot * (1 - mask_n.unsqueeze(-1))
         
-        # Forward masked input
         z_l_masked, s_masked = self.local_encoder(x_masked)
         z_prime_masked = self.latent_encoder(z_l_masked)
         
-        # We predict ONLY the masked tokens. 
-        # Typically AMTM predicts z_l tokens, but paper implies reconstructing X.
-        # Let's use the full decoder path for consistency.
         z_hat_masked = self.latent_decoder(z_prime_masked)
         x_hat_amtm = self.local_decoder(z_hat_masked, s_masked)
         logits_amtm = self.head(x_hat_amtm)
         
-        # Compute loss only on masked positions
         loss_amtm = F.cross_entropy(logits_amtm.permute(0, 2, 1), x_indices, reduction='none')
         loss_amtm = (loss_amtm * mask_n).sum() / (mask_n.sum() + 1e-6)
 
-        # Total Loss
         total_loss = loss_mtr + (lambda_latent * loss_latent_mtr) + loss_amtm
 
         return total_loss, {

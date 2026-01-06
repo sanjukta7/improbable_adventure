@@ -2,10 +2,9 @@ from genomic_benchmarks.loc2seq import download_dataset
 from genomic_benchmarks.data_check import list_datasets
 import os
 
-print("Available datasets in genomic_benchmarks:")
 datasets = list_datasets()
-for ds in datasets:
-    print(f"  - {ds}")
+#for ds in datasets:
+#    print(f"  - {ds}")
 
 dataset_name = "human_nontata_promoters"
 print(f"\nDownloading '{dataset_name}'")
